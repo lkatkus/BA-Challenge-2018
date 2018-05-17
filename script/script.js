@@ -24,7 +24,14 @@ const setup = () => {
         
         generatePaymentGraph(formData.credit, monthlyInterest, monthlyPayment, formData.time);
     }else{
-        console.log('bad input');
+        // Add message
+        console.log('Bad input');
+
+        // Clear tableContainer if table exists
+        if(tableContainer.hasChildNodes()){
+            // Clears table container if table is present
+            tableContainer.innerHTML = '';
+        }
     }
 }
 
@@ -51,9 +58,13 @@ const generatePaymentGraph = (credit, monthlyInterest, monthlyPayment, months) =
     // Selects table container
     let tableContainer = document.getElementById('tableContainer');
     
-    // Check if table exists
-    
-    // Creates table element
+    // Check if table exists in tableContainer
+    if(tableContainer.hasChildNodes()){
+        // Clears table container if table is present
+        tableContainer.innerHTML = '';
+    }
+
+    // Creates a new table element
     let table = document.createElement('table');
     // Appends table to tableContainer
     tableContainer.appendChild(table);
@@ -85,12 +96,8 @@ const calcAnnuityCoef = (monthlyInterest, months) => {
     return (monthlyInterest * (Math.pow((1 + monthlyInterest), months))) / ((Math.pow((1 + monthlyInterest), months) - 1));
 }
 
-const calcCreditLeft = (previousSumLeft, monthlyInterest, monthlyPayment) => {
-    return previousSumLeft - (monthlyPayment - previousSumLeft * monthlyInterest);
-}
-
+// Calculates single month payment data
 const calcMonth = (i, creditLeft, monthlyInterest, monthlyPayment) => {
-    
     // Calculate remaining credit sum
     let remainingCredit = i === 0 ?
         creditLeft :
@@ -111,8 +118,14 @@ const calcMonth = (i, creditLeft, monthlyInterest, monthlyPayment) => {
     }
 }
 
+// Form input validation
 const validateData = (formData) => {
-    // Work in progress
+    // Check if any input is less than 1
+    for(let key in formData){
+        if(formData[key] < 1){
+            return false
+        }
+    }
     return true;
 }
 
