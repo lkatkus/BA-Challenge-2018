@@ -1,7 +1,7 @@
 // Gets data from submited form
 const setup = () => {
     
-    // Prevent form submit
+    // Prevent form from submit
     event.preventDefault();
 
     // Get values from form
@@ -13,18 +13,9 @@ const setup = () => {
 
     // Validate input
     if(validateData(formData)){
-        // Calculate monthly interest
-        let monthlyInterest = formData.interest / 12 / 100;
-
-        // Calculates annuity coefficient
-        let annuityCoef = calcAnnuityCoef(monthlyInterest, formData.time);
-
-        // Calculate monthly payment
-        let monthlyPayment = annuityCoef * formData.credit;
-        
-        generatePaymentGraph(formData.credit, monthlyInterest, monthlyPayment, formData.time);
+        let paymentGraph = new PaymentGraph(formData.credit, formData.time, formData.interest);
     }else{
-        // Add message
+        // Add error message
         console.log('Bad input');
 
         // Clear tableContainer if table exists
@@ -35,87 +26,172 @@ const setup = () => {
     }
 }
 
-// Generates payment graph
-const generatePaymentGraph = (credit, monthlyInterest, monthlyPayment, months) => {
-    // Placeholder array for monthly payment data
-    let paymentArray = [];
-    let payment;
+class PaymentGraph {
+    
+    constructor(credit, time, interest){
+        
+        this.credit = credit; /* Total credit sum */
+        this.time = time; /* Credit time in months */
+        this.interest = interest; /* Anual interest rate */
 
-    // Fill paymentArray
-    for(let i = 0; i < months; i++){
-        // Check if first payment
-        if(i === 0){
-            payment = calcMonth(i, credit, monthlyInterest, monthlyPayment);
-        // If not first payment, send previous payment remaining credit
-        }else{
-            payment = calcMonth(i, paymentArray[i-1].remainingCredit, monthlyInterest, monthlyPayment);
+        // Placeholder array for monthly payment data
+        this.paymentArray = [];
+
+        // Calculates interest value for one month
+        this.monthlyInterest = this.interest / 12 / 100;
+
+        // Calculates annuity coefficient
+        this.annuityCoef = this.calcAnnuityCoef();
+
+        // Calculates a single monthly payment
+        this.monthlyPayment = this.annuityCoef * credit;
+
+        this.createPaymentArray();
+    }
+    
+    // Calculates monthly annuity coefficient
+    calcAnnuityCoef(){
+        return (this.monthlyInterest * (Math.pow((1 + this.monthlyInterest), this.time))) / ((Math.pow((1 + this.monthlyInterest), this.time) - 1));
+    }
+
+    // Generates data for paymentArray
+    createPaymentArray(){
+
+            // Fill paymentArray
+            for(let i = 0; i < this.time; i++){
+                let payment;
+
+                // Check if adding first payment
+                if(i === 0){
+                    payment = this.calcMonth(i, this.credit);
+                // If not first payment, send previous payment remaining credit
+                }else{
+                    payment = this.calcMonth(i, this.paymentArray[i-1].remainingCredit);
+                }
+                // Push data to paymentArray
+                this.paymentArray.push(payment);
+            }            
+
+
+        this.createPaymentTable();
+    }
+
+    // Updates paymentArray
+    updatePaymentArray(id, interestChange){
+        
+        // Set credit to remaining credit from interest rate update moment for calculations
+        this.credit = this.paymentArray[id].remainingCredit;
+        
+        // Calculates remaining time
+        this.time = this.time - id;
+
+        let newInterestRate = this.paymentArray[id].interest + interestChange;
+
+        this.interest = newInterestRate;
+
+        // Calculates interest value for one month
+        this.monthlyInterest = newInterestRate / 12 / 100;
+
+        // Calculates annuity coefficient
+        this.annuityCoef = this.calcAnnuityCoef();
+
+        // Calculates a single monthly payment
+        this.monthlyPayment = this.annuityCoef * this.credit;
+
+        for(let i = id; i < this.paymentArray.length; i++){
+            if(i === 0){
+                this.paymentArray[i] = this.calcMonth(i, this.credit);
+            }else{
+                this.paymentArray[i] = this.calcMonth(i, this.paymentArray[i-1].remainingCredit);
+            }
         }
-        // Push data to paymentArray
-        paymentArray.push(payment);
+
+        // Reset time to full
+        this.time = this.paymentArray.length;
+
+        this.createPaymentTable(id);
     }
 
-    // Generate payment table
-    // Selects table container
-    let tableContainer = document.getElementById('tableContainer');
+    // Calculates single month data
+    calcMonth(i, creditLeft){
+
+        // Calculate remaining credit sum
+        let remainingCredit = 
+            i === 0
+                ? creditLeft
+                : creditLeft - (this.monthlyPayment - creditLeft * this.monthlyInterest)
     
-    // Check if table exists in tableContainer
-    if(tableContainer.hasChildNodes()){
-        // Clears table container if table is present
-        tableContainer.innerHTML = '';
-    }
-
-    // Creates a new table element
-    let table = document.createElement('table');
-    // Appends table to tableContainer
-    tableContainer.appendChild(table);
-
-    // Generates table data
-    for(let i = 0; i < paymentArray.length; i++){
-        // Creates table row
-        let tableRow = document.createElement('tr');
-
-        // Creates a single row
-        for(let key in paymentArray[i]){
-            // Creates table cell
-            let tableCell = document.createElement('td');
-            // Creates text data to cell
-            let text = document.createTextNode(paymentArray[i][key]);
-            // Appends text data to cell
-            tableCell.appendChild(text);
-            // Appends cell to row
-            tableRow.appendChild(tableCell);
-        }        
-        // Appends row to table
-        table.appendChild(tableRow);
-    }
-}
-
-// UTILS
-// Calculates monthly annuity coefficient
-const calcAnnuityCoef = (monthlyInterest, months) => {
-    return (monthlyInterest * (Math.pow((1 + monthlyInterest), months))) / ((Math.pow((1 + monthlyInterest), months) - 1));
-}
-
-// Calculates single month payment data
-const calcMonth = (i, creditLeft, monthlyInterest, monthlyPayment) => {
-    // Calculate remaining credit sum
-    let remainingCredit = i === 0 ?
-        creditLeft :
-        creditLeft - (monthlyPayment - creditLeft * monthlyInterest)
-
-    // Calculate interest payment
-    let monthlyInterestPayment = remainingCredit * monthlyInterest;
-
-    // Calculate principal payment
-    let monthlyCreditPayment = monthlyPayment - monthlyInterestPayment;
+        // Calculate interest payment
+        let monthlyInterestPayment = remainingCredit * this.monthlyInterest;
     
-    return {
-        id: i + 1,
-        remainingCredit,
-        monthlyCreditPayment,
-        monthlyInterestPayment,
-        totalMonthlyPayment: monthlyCreditPayment + monthlyInterestPayment
+        // Calculate principal payment
+        let monthlyCreditPayment = this.monthlyPayment - monthlyInterestPayment;
+        
+        return {
+            id: i + 1,
+            remainingCredit,
+            monthlyCreditPayment,
+            monthlyInterestPayment,
+            totalMonthlyPayment: monthlyCreditPayment + monthlyInterestPayment,
+            interest: this.interest
+        }
     }
+
+    // Generates payments table
+    createPaymentTable(){
+        // Selects table container
+        let tableContainer = document.getElementById('tableContainer');
+        
+        // Check if table exists in tableContainer
+        if(tableContainer.hasChildNodes()){
+            // Clears table container if table is present
+            tableContainer.innerHTML = '';
+        }
+
+        // Creates a new table element
+        let table = document.createElement('table');
+        // Appends table to tableContainer
+        tableContainer.appendChild(table);
+
+        // Generates table data
+        for(let i = 0; i < this.paymentArray.length; i++){
+            // Creates table row
+            let tableRow = document.createElement('tr');
+            // Set row to index in paymentArray. Used for updating interest rate
+            tableRow.id = i;
+
+            // Creates a single row
+            for(let key in this.paymentArray[i]){
+                // Creates table cell
+                let tableCell = document.createElement('td');
+                // Creates text data to cell
+                let text = document.createTextNode(this.paymentArray[i][key]);
+                // Appends text data to cell
+                tableCell.appendChild(text);
+                
+                // Appends cell to row
+                tableRow.appendChild(tableCell);
+            }        
+            // Appends row to table
+            
+            let increaseButton = document.createElement('td');
+            increaseButton.appendChild(document.createTextNode('+'));    
+            increaseButton.addEventListener('click', () => {
+                this.updatePaymentArray(i, 1);
+            });      
+            tableRow.appendChild(increaseButton);
+
+            let decreaseButton = document.createElement('td');
+            decreaseButton.appendChild(document.createTextNode('-'));
+            decreaseButton.addEventListener('click', () => {
+                this.updatePaymentArray(i, -1);
+            });  
+            tableRow.appendChild(decreaseButton);
+
+            table.appendChild(tableRow);
+        }
+    }
+
 }
 
 // Form input validation
