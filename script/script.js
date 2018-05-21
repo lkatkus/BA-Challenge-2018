@@ -36,6 +36,8 @@ class PaymentGraph {
         this.interest = interest; /* Anual interest rate */
         this.paymentDate = paymentDate /* Date of first payment */
 
+        this.tableHeader = ["Payment #", "Payment date", "Remaining amount", "Principal payment", "Interest payment", "Total payment", "Interest rate"];
+
         // Placeholder array for monthly payment data
         this.paymentArray = [];
 
@@ -73,7 +75,7 @@ class PaymentGraph {
                 
                 // Push data to paymentArray
                 this.paymentArray.push(payment);
-            }            
+            }
 
         this.createPaymentTable();
     }
@@ -81,37 +83,44 @@ class PaymentGraph {
     // Updates paymentArray
     updatePaymentArray(id, interestChange){
         
-        // Set credit to remaining credit from interest rate update moment for calculations
-        this.credit = this.paymentArray[id].remainingCredit;
-        
-        // Calculates remaining time
-        this.time = this.time - id;
-
         let newInterestRate = this.paymentArray[id].interest + interestChange;
 
-        this.interest = newInterestRate;
+        // Checks if newInterestRate is equal to previous payment newInterestRate. If they are equal calculations for all payments should be redone as they calculate based of remaining credit
+        if(id !== 0 && newInterestRate === this.paymentArray[id - 1].interest){
+            this.updatePaymentArray(0, 0);
 
-        // Calculates interest value for one month
-        this.monthlyInterest = newInterestRate / 12 / 100;
+        }else{
 
-        // Calculates annuity coefficient
-        this.annuityCoef = this.calcAnnuityCoef();
-
-        // Calculates a single monthly payment
-        this.monthlyPayment = this.annuityCoef * this.credit;
-
-        for(let i = id; i < this.paymentArray.length; i++){
-            if(i === 0){
-                this.paymentArray[i] = this.calcMonth(i, this.credit, this.paymentDate);
-            }else{
-                this.paymentArray[i] = this.calcMonth(i, this.paymentArray[i-1].remainingCredit, this.paymentArray[i-1].paymentDate);
+            this.interest = newInterestRate;
+    
+            // Set credit to remaining credit from interest rate update moment for calculations
+            this.credit = this.paymentArray[id].remainingCredit;
+            
+            // Calculates remaining time
+            this.time = this.time - id;
+    
+            // Calculates interest value for one month
+            this.monthlyInterest = newInterestRate / 12 / 100;
+    
+            // Calculates annuity coefficient
+            this.annuityCoef = this.calcAnnuityCoef();
+    
+            // Calculates a single monthly payment
+            this.monthlyPayment = this.annuityCoef * this.credit;
+    
+            for(let i = id; i < this.paymentArray.length; i++){
+                if(i === 0){
+                    this.paymentArray[i] = this.calcMonth(i, this.credit, this.paymentDate);
+                }else{
+                    this.paymentArray[i] = this.calcMonth(i, this.paymentArray[i-1].remainingCredit, this.paymentArray[i-1].paymentDate);
+                }
             }
+    
+            // Reset time to full
+            this.time = this.paymentArray.length;
+    
+            this.createPaymentTable(id);
         }
-
-        // Reset time to full
-        this.time = this.paymentArray.length;
-
-        this.createPaymentTable(id);
     }
 
     // Calculates single month data
@@ -167,6 +176,22 @@ class PaymentGraph {
         // Appends table to tableContainer
         tableContainer.appendChild(table);
 
+        // Generates table header
+        let tableRow = document.createElement('tr');
+        
+        for(let i = 0; i < this.tableHeader.length; i++){
+            let tableCell = document.createElement('td');
+            // Creates text data to cell
+            let text = document.createTextNode(this.tableHeader[i]);
+            // Appends text data to cell
+            tableCell.appendChild(text);
+
+            // Appends cell to row
+            tableRow.appendChild(tableCell);
+        }
+        // Appends row with table header to table
+        table.appendChild(tableRow);
+
         // Generates table data
         for(let i = 0; i < this.paymentArray.length; i++){
             // Creates table row
@@ -186,8 +211,8 @@ class PaymentGraph {
                 // Appends cell to row
                 tableRow.appendChild(tableCell);
             }        
-            // Appends row to table
             
+            // Interest rate modification buttons
             let increaseButton = document.createElement('td');
             increaseButton.appendChild(document.createTextNode('+'));    
             increaseButton.addEventListener('click', () => {
@@ -202,8 +227,68 @@ class PaymentGraph {
             });  
             tableRow.appendChild(decreaseButton);
 
+            // Appends row with payment data to table
             table.appendChild(tableRow);
         }
+
+        // Generates CSV download button
+        let buttonCSV = document.createElement('button');
+        
+        buttonCSV.addEventListener('click', () => {
+            this.downloadCSV();
+        });
+
+        buttonCSV.innerHTML = 'Download CSV';
+        buttonCSV.classList.add('downloadBtn');
+
+        tableContainer.appendChild(buttonCSV);
+    }
+
+    createCSV(){      
+        // Converts payment object data to CSV string
+        let paymentArrayCSV = this.paymentArray.map((item) => {
+            
+            // Placeholder for a single payment CSV string
+            let itemData = '';
+
+            for(let key in item){+
+                itemData.length === 0
+                    ? itemData = item[key]
+                    : itemData = itemData + ', ' + item[key]
+            }
+
+            return itemData;
+        });
+
+        // Placeholder for final CSV string with header row
+        let finalCSV = this.tableHeader.join();
+
+        // Converts CSV payment array to single CSV string
+        for(let i = 0; i < paymentArrayCSV.length; i++){
+            finalCSV = finalCSV + '\n' + paymentArrayCSV[i];
+        }
+
+        return finalCSV;
+    }
+
+    downloadCSV(){
+        // Get CSV data from paymentsArray
+        let csv = this.createCSV();
+
+        // Set data header
+        csv = 'data:text/csv;charset=utf-8,' + csv;
+
+        // Creates a temp anchor tag
+        let link = document.createElement('a');
+
+        // "Embeds CSV data to href attribute"
+        link.setAttribute('href', csv);
+
+        // Sets download file name and force download
+        link.setAttribute('download', 'paymentGraph.csv');
+
+        // Triggers download
+        link.click();
     }
 
 }

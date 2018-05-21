@@ -9,29 +9,38 @@
     <script src="script/script.js"></script>
 </head>
 <body>
-    <form onsubmit="setup()">
-        <div>
-            <label for="credit">Credit</label>
-            <input type="number" name="credit" value="10000">
-        </div>
-        <div>
-            <label for="time">Time</label>
-            <input type="number" name="time" value="26">
-        </div>
-        <div>
-            <label for="interest">Interest</label>
-            <input type="number" name="interest" value="7">
-        </div>
-        <div>
-            <label for="start">Day of first payment</label>
-            <input type="date" name="date" value="2010-10-10">
-        </div>
-        <div>
-            <button type="submit">Calculate</button>
-        </div>
-    </form>
 
-    <div id="tableContainer"></div>
+    <div class="container">
+        <h1>BA.IT CHALLENGE 2018</h1>
+        <p>* To adjust interest rates, please use "+" and "-" near the desired field after the payment graph was calculated.</p>
+
+        <form onsubmit="setup()">
+                <div class="inputContainer">
+                    <div>
+                        <label for="credit">Credit amount</label>
+                        <input type="number" name="credit" value="5000">
+                    </div>
+                    <div>
+                        <label for="time">Credit duration (months)</label>
+                        <input type="number" name="time" value="24">
+                    </div>
+                    <div>
+                        <label for="interest">Annual interest rate (%)</label>
+                        <input type="number" name="interest" value="12">
+                    </div>
+                    <div>
+                        <label for="start">Day of first payment</label>
+                        <input type="date" name="date" value="2010-10-10">
+                    </div>
+                </div>
+        
+                <div class="buttonContainer">
+                    <button type="submit">Calculate</button>
+                </div>
+            </form>
+        
+            <div id="tableContainer"></div>        
+    </div>
 
 </body>
 </html>

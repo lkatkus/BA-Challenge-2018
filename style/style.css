@@ -1,3 +1,64 @@
+*{
+    box-sizing: border-box;
+}
+
+.container{
+    text-align: center;
+}
+
+form{
+    width: 50%;
+    margin: 0 auto;
+    position: relative;
+}
+
+.inputContainer{
+    text-align: left;
+}
+
+.inputContainer div{
+    margin-bottom: 10px;
+}
+
+.inputContainer div input{
+    width: 100%;
+    padding: 5px;
+}
+
+.buttonContainer{
+    margin-top: 20px;
+    width: 100%;
+}
+
+.buttonContainer button{
+    padding: 10px;
+    width: 100%;
+    border-radius: 5px;
+    text-transform: uppercase;
+    font-weight: bold;
+}
+
 table tr td{
-    padding: 0 20px;
+    padding: 5px 20px;
+}
+
+#tableContainer{
+    margin: 20px 0;
+}
+
+#tableContainer table{
+    margin: 0 auto;
+}
+
+tr:first-child{
+    font-weight: bold;
+}
+
+.downloadBtn{
+    width: 50%;
+    margin-top: 20px;
+    padding: 10px;
+    border-radius: 5px;
+    text-transform: uppercase;
+    font-weight: bold;
 }
