@@ -92,6 +92,11 @@ class PaymentGraph {
         
         let newInterestRate = this.paymentArray[id].interest + interestChange;
 
+        // Check if interest is not equal to zero or less
+        newInterestRate < 1
+            ? newInterestRate = 1
+            : newInterestRate = newInterestRate
+
         // Checks if newInterestRate is equal to previous payment newInterestRate. If they are equal calculations for all payments should be redone as they calculate based of remaining credit
         if(id !== 0 && newInterestRate === this.paymentArray[id - 1].interest){
             this.updatePaymentArray(0, 0);
