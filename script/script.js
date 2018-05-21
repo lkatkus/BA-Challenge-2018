@@ -1,38 +1,41 @@
 // Gets data from submited form
 const setup = () => {
     
-    // Prevent form from submit
+    // Prevent form from submitting
     event.preventDefault();
 
     // Get values from form
     let formData = {
         credit: Number(event.target.credit.value),
-        time: Number(event.target.time.value),
+        creditLength: Number(event.target.paymentPeriods.value),
+        paymentPeriods: Number(event.target.paymentPeriods.value),
         interest: Number(event.target.interest.value),
         paymentDate: new Date(event.target.date.value)
     }
 
     // Validate input
     if(validateData(formData)){
-        let paymentGraph = new PaymentGraph(formData.credit, formData.time, formData.interest, formData.paymentDate);
+        let paymentGraph = new PaymentGraph(formData.credit, formData.creditLength, formData.paymentPeriods, formData.interest, formData.paymentDate);
     }else{
-        // Add error message
-        console.log('Bad input');
-
+        
         // Clear tableContainer if table exists
         if(tableContainer.hasChildNodes()){
             // Clears table container if table is present
             tableContainer.innerHTML = '';
         }
+    
+        // Add error message
+        tableContainer.innerHTML = "<h2>All values must be greater than zero.</h2>";
     }
 }
 
 class PaymentGraph {
     
-    constructor(credit, time, interest, paymentDate){
+    constructor(credit, creditLength, paymentPeriods, interest, paymentDate){
         
         this.credit = credit; /* Total credit sum */
-        this.time = time; /* Credit time in months */
+        this.creditLength = creditLength;
+        this.paymentPeriods = paymentPeriods; /* Credit paymentPeriods in months */
         this.interest = interest; /* Anual interest rate */
         this.paymentDate = paymentDate /* Date of first payment */
 
@@ -55,20 +58,24 @@ class PaymentGraph {
     
     // Calculates monthly annuity coefficient
     calcAnnuityCoef(){
-        return (this.monthlyInterest * (Math.pow((1 + this.monthlyInterest), this.time))) / ((Math.pow((1 + this.monthlyInterest), this.time) - 1));
+        let annuityCoef = (this.monthlyInterest * (Math.pow((1 + this.monthlyInterest), this.paymentPeriods))) / ((Math.pow((1 + this.monthlyInterest), this.paymentPeriods) - 1));
+        annuityCoef = String(annuityCoef).slice(0,8);
+        annuityCoef = Number(annuityCoef);
+        
+        return annuityCoef;
     }
 
     // Generates data for paymentArray
     createPaymentArray(){
 
             // Fill paymentArray
-            for(let i = 0; i < this.time; i++){
+            for(let i = 0; i < this.paymentPeriods; i++){
                 let payment;
 
                 // Check if adding first payment
                 if(i === 0){
                     payment = this.calcMonth(i, this.credit, this.paymentDate);
-                // If not first payment, send previous payment remaining credit
+                // If not first payment, send previous payments remaining credit
                 }else{
                     payment = this.calcMonth(i, this.paymentArray[i-1].remainingCredit, this.paymentArray[i-1].paymentDate);
                 }
@@ -90,14 +97,14 @@ class PaymentGraph {
             this.updatePaymentArray(0, 0);
 
         }else{
-
+            // Update interest rate
             this.interest = newInterestRate;
     
             // Set credit to remaining credit from interest rate update moment for calculations
             this.credit = this.paymentArray[id].remainingCredit;
             
-            // Calculates remaining time
-            this.time = this.time - id;
+            // Calculates remaining paymentPeriods
+            this.paymentPeriods = this.paymentPeriods - id;
     
             // Calculates interest value for one month
             this.monthlyInterest = newInterestRate / 12 / 100;
@@ -116,8 +123,8 @@ class PaymentGraph {
                 }
             }
     
-            // Reset time to full
-            this.time = this.paymentArray.length;
+            // Reset paymentPeriods to full
+            this.paymentPeriods = this.paymentArray.length;
     
             this.createPaymentTable(id);
         }
@@ -127,35 +134,41 @@ class PaymentGraph {
     calcMonth(i, creditLeft, date){
       
         // Calculate remaining credit sum
-        let remainingCredit = 
-            i === 0
-                ? creditLeft
-                : creditLeft - (this.monthlyPayment - creditLeft * this.monthlyInterest)
-    
+        let remainingCredit = Number(
+                i === 0
+                    ? creditLeft
+                    : (creditLeft - this.paymentArray[i-1].monthlyCreditPayment)
+        )
+        
         // Calculate interest payment
-        let monthlyInterestPayment = remainingCredit * this.monthlyInterest;
+        let monthlyInterestPayment = (remainingCredit * this.monthlyInterest);
     
         // Calculate principal payment
-        let monthlyCreditPayment = this.monthlyPayment - monthlyInterestPayment;
-        
+        let monthlyCreditPayment = (this.monthlyPayment - monthlyInterestPayment);
+
+        // Checks if last credit payment is enough for remaining credit. If not, then last payment = remaining credit
+        if(i === this.creditLength - 1 && monthlyCreditPayment < remainingCredit){
+            monthlyCreditPayment = remainingCredit;
+        }
+       
         // Update payment day
         let paymentDate = new Date(date);
-        let paymentString;
+        let paymentDateString;
 
         if(i === 0){
-            paymentString = paymentDate.toLocaleDateString();
+            paymentDateString = paymentDate.toLocaleDateString();
         }else{
             paymentDate.setMonth(paymentDate.getMonth() + 1);
-            paymentString = paymentDate.toLocaleDateString();
+            paymentDateString = paymentDate.toLocaleDateString();
         }
 
         return {
             id: i + 1,
-            paymentDate: paymentString,
-            remainingCredit,
-            monthlyCreditPayment,
-            monthlyInterestPayment,
-            totalMonthlyPayment: monthlyCreditPayment + monthlyInterestPayment,
+            paymentDate: paymentDateString,
+            remainingCredit: remainingCredit.toFixed(2),
+            monthlyCreditPayment: monthlyCreditPayment.toFixed(2),
+            monthlyInterestPayment: monthlyInterestPayment.toFixed(2),
+            totalMonthlyPayment: (monthlyCreditPayment + monthlyInterestPayment).toFixed(2),
             interest: this.interest
         }
     }
@@ -218,13 +231,15 @@ class PaymentGraph {
             increaseButton.addEventListener('click', () => {
                 this.updatePaymentArray(i, 1);
             });      
+            increaseButton.classList.add('tableAddButton','tableButton');
             tableRow.appendChild(increaseButton);
 
             let decreaseButton = document.createElement('td');
             decreaseButton.appendChild(document.createTextNode('-'));
             decreaseButton.addEventListener('click', () => {
                 this.updatePaymentArray(i, -1);
-            });  
+            });
+            decreaseButton.classList.add('tableRemoveButton','tableButton');
             tableRow.appendChild(decreaseButton);
 
             // Appends row with payment data to table
@@ -302,9 +317,4 @@ const validateData = (formData) => {
         }
     }
     return true;
-}
-
-const precisionRound = (number, precision) => {
-    let factor = Math.pow(10, precision);
-    return Math.round(number * factor) / factor;
 }

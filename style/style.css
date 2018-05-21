@@ -38,10 +38,6 @@ form{
     font-weight: bold;
 }
 
-table tr td{
-    padding: 5px 20px;
-}
-
 #tableContainer{
     margin: 20px 0;
 }
@@ -50,8 +46,26 @@ table tr td{
     margin: 0 auto;
 }
 
+table tr td{
+    padding: 5px 20px;
+}
+
 tr:first-child{
     font-weight: bold;
+}
+
+.tableButton{
+    transition: all 0.2s;
+    user-select: none;
+    cursor: pointer;
+}
+
+.tableAddButton:hover{
+    background-color: palegreen;
+}
+
+.tableRemoveButton:hover{
+    background-color: salmon;
 }
 
 .downloadBtn{
