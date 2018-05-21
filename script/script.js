@@ -8,12 +8,13 @@ const setup = () => {
     let formData = {
         credit: Number(event.target.credit.value),
         time: Number(event.target.time.value),
-        interest: Number(event.target.interest.value)
+        interest: Number(event.target.interest.value),
+        paymentDate: new Date(event.target.date.value)
     }
 
     // Validate input
     if(validateData(formData)){
-        let paymentGraph = new PaymentGraph(formData.credit, formData.time, formData.interest);
+        let paymentGraph = new PaymentGraph(formData.credit, formData.time, formData.interest, formData.paymentDate);
     }else{
         // Add error message
         console.log('Bad input');
@@ -28,11 +29,12 @@ const setup = () => {
 
 class PaymentGraph {
     
-    constructor(credit, time, interest){
+    constructor(credit, time, interest, paymentDate){
         
         this.credit = credit; /* Total credit sum */
         this.time = time; /* Credit time in months */
         this.interest = interest; /* Anual interest rate */
+        this.paymentDate = paymentDate /* Date of first payment */
 
         // Placeholder array for monthly payment data
         this.paymentArray = [];
@@ -63,15 +65,15 @@ class PaymentGraph {
 
                 // Check if adding first payment
                 if(i === 0){
-                    payment = this.calcMonth(i, this.credit);
+                    payment = this.calcMonth(i, this.credit, this.paymentDate);
                 // If not first payment, send previous payment remaining credit
                 }else{
-                    payment = this.calcMonth(i, this.paymentArray[i-1].remainingCredit);
+                    payment = this.calcMonth(i, this.paymentArray[i-1].remainingCredit, this.paymentArray[i-1].paymentDate);
                 }
+                
                 // Push data to paymentArray
                 this.paymentArray.push(payment);
             }            
-
 
         this.createPaymentTable();
     }
@@ -100,9 +102,9 @@ class PaymentGraph {
 
         for(let i = id; i < this.paymentArray.length; i++){
             if(i === 0){
-                this.paymentArray[i] = this.calcMonth(i, this.credit);
+                this.paymentArray[i] = this.calcMonth(i, this.credit, this.paymentDate);
             }else{
-                this.paymentArray[i] = this.calcMonth(i, this.paymentArray[i-1].remainingCredit);
+                this.paymentArray[i] = this.calcMonth(i, this.paymentArray[i-1].remainingCredit, this.paymentArray[i-1].paymentDate);
             }
         }
 
@@ -113,8 +115,8 @@ class PaymentGraph {
     }
 
     // Calculates single month data
-    calcMonth(i, creditLeft){
-
+    calcMonth(i, creditLeft, date){
+      
         // Calculate remaining credit sum
         let remainingCredit = 
             i === 0
@@ -127,8 +129,20 @@ class PaymentGraph {
         // Calculate principal payment
         let monthlyCreditPayment = this.monthlyPayment - monthlyInterestPayment;
         
+        // Update payment day
+        let paymentDate = new Date(date);
+        let paymentString;
+
+        if(i === 0){
+            paymentString = paymentDate.toLocaleDateString();
+        }else{
+            paymentDate.setMonth(paymentDate.getMonth() + 1);
+            paymentString = paymentDate.toLocaleDateString();
+        }
+
         return {
             id: i + 1,
+            paymentDate: paymentString,
             remainingCredit,
             monthlyCreditPayment,
             monthlyInterestPayment,
